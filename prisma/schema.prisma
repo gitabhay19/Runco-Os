@@ -7,8 +7,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // String-typed values used in the app (kept in src/lib/enums.ts):
@@ -16,7 +17,6 @@ datasource db {
 //   TaskPriority   : "LOW" | "MEDIUM" | "HIGH" | "URGENT"
 //   TaskStatus     : "TODO" | "IN_PROGRESS" | "BLOCKED" | "DONE"
 //   ActivityStatus : "ACTIVE" | "IDLE" | "STALE"
-
 model User {
   id             String    @id @default(cuid())
   email          String    @unique
