@@ -2,7 +2,16 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const Role = { ADMIN: "ADMIN", USER: "USER" } as const;
-const prisma = new PrismaClient();
+
+// Use the direct (non-pooled) URL for seeding if available.
+// Neon's pooler doesn't support the session-mode commands Prisma needs.
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
+    },
+  },
+});
 
 const STAGES = [
   {
