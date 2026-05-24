@@ -98,10 +98,10 @@ export default async function LoginPage() {
                 <p className="mt-5 text-center text-xs text-muted-foreground">
                   Trouble signing in? Contact{" "}
                   <a
-                    href="mailto:abhaykalera1@gmail.com"
+                    href="mailto:abhay@runcogrowth.com"
                     className="text-foreground underline-offset-4 hover:underline"
                   >
-                    abhaykalera1@gmail.com
+                    abhay@runcogrowth.com
                   </a>
                 </p>
               </div>

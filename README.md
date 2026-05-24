@@ -45,7 +45,7 @@ Then open http://localhost:3000 in your browser. You'll be redirected to `/login
 
 | Role  | Email                    | Password   |
 |-------|--------------------------|------------|
-| Admin | abhaykalera1@gmail.com   | Admin@123  |
+| Admin | abhay@runcogrowth.com    | Admin@123  |
 | User  | sales@runcogrowth.com    | User@123   |
 
 The admin sees all data and can manage users; the regular user only sees deals and tasks they're assigned to or created.
