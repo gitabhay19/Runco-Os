@@ -6,6 +6,7 @@ import { logActivity } from "@/lib/activity";
 import { broadcast } from "@/lib/realtime";
 import { taskRowToDTO } from "@/lib/dto";
 import { notify } from "@/lib/notifications";
+import { canViewResource } from "@/lib/permissions";
 
 const taskInclude = {
   assignee: {
@@ -23,6 +24,9 @@ export async function GET() {
   } catch (e) {
     if (e instanceof Response) return e;
     throw e;
+  }
+  if (!(await canViewResource(user.id, user.role, "tasks"))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Admins see all tasks. Users only see tasks assigned to them or created by them.

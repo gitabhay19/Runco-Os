@@ -1,13 +1,18 @@
+import { redirect } from "next/navigation";
 import { Topbar } from "@/components/app-shell/topbar";
 import { TasksView } from "@/components/tasks/tasks-view";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { canViewResource, getResourceAccess, firstAllowedRoute } from "@/lib/permissions";
 import type { TaskDTO, UserLite, TaskPriority, TaskStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function TasksPage() {
   const user = await requireUser();
+  if (!(await canViewResource(user.id, user.role, "tasks"))) {
+    redirect(firstAllowedRoute(await getResourceAccess(user.id, user.role)));
+  }
 
   const where =
     user.role === "ADMIN"

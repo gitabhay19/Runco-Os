@@ -36,6 +36,7 @@ interface AdminUser {
   avatarColor: string;
   createdAt: string;
   _count: { assignedDeals: number; assignedTasks: number };
+  access: { pipeline: boolean; tasks: boolean; contacts: boolean; analytics: boolean };
 }
 
 interface Props {
@@ -135,6 +136,7 @@ export function UsersTab({ initialUsers, currentUserId }: Props) {
               <th className="px-4 py-3 text-left">Department</th>
               <th className="px-4 py-3 text-left">Employee</th>
               <th className="px-4 py-3 text-left">Joined</th>
+              <th className="px-4 py-3 text-left">Access</th>
               <th className="px-4 py-3 text-right">Workload</th>
               <th className="px-4 py-3 text-right">{""}</th>
             </tr>
@@ -193,6 +195,40 @@ export function UsersTab({ initialUsers, currentUserId }: Props) {
                 <td className="px-4 py-3 align-middle text-xs text-muted-foreground">
                   {formatShortDate(u.joiningDate ?? u.createdAt)}
                 </td>
+                <td className="px-4 py-3 align-middle">
+                  {u.role === "ADMIN" ? (
+                    <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                      Full
+                    </span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {(
+                        [
+                          { key: "pipeline", short: "Pipe" },
+                          { key: "tasks", short: "Task" },
+                          { key: "contacts", short: "Cont" },
+                          { key: "analytics", short: "Anal" },
+                        ] as const
+                      ).map((p) => {
+                        const on = u.access?.[p.key] ?? true;
+                        return (
+                          <span
+                            key={p.key}
+                            title={`${p.key}: ${on ? "allowed" : "blocked"}`}
+                            className={cn(
+                              "inline-flex h-5 items-center rounded px-1.5 text-[9px] font-bold uppercase tracking-[0.12em]",
+                              on
+                                ? "bg-success/15 text-success"
+                                : "bg-destructive/10 text-destructive"
+                            )}
+                          >
+                            {p.short}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-right align-middle">
                   <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground">
                     <span title="Assigned deals">{u._count.assignedDeals}d</span>
@@ -228,7 +264,7 @@ export function UsersTab({ initialUsers, currentUserId }: Props) {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   No users match this filter.
                 </td>
               </tr>
@@ -270,6 +306,12 @@ function UserEditor({
   const [employmentType, setEmploymentType] = useState("Full-time");
   const [joiningDate, setJoiningDate] = useState("");
   const [avatarColor, setAvatarColor] = useState("#0ea5e9");
+  const [access, setAccess] = useState<{
+    pipeline: boolean;
+    tasks: boolean;
+    contacts: boolean;
+    analytics: boolean;
+  }>({ pipeline: true, tasks: true, contacts: true, analytics: true });
   const [isPending, startTransition] = useTransition();
 
   function reset(u: AdminUser | null) {
@@ -284,6 +326,7 @@ function UserEditor({
       setEmploymentType(u.employmentType ?? "Full-time");
       setJoiningDate(u.joiningDate ? u.joiningDate.slice(0, 10) : "");
       setAvatarColor(u.avatarColor);
+      setAccess(u.access ?? { pipeline: true, tasks: true, contacts: true, analytics: true });
     } else {
       setName("");
       setEmail("");
@@ -294,6 +337,7 @@ function UserEditor({
       setEmploymentType("Full-time");
       setJoiningDate("");
       setAvatarColor(AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]);
+      setAccess({ pipeline: true, tasks: true, contacts: true, analytics: true });
     }
   }
 
@@ -323,6 +367,7 @@ function UserEditor({
         employmentType: employmentType || null,
         joiningDate: joiningDate ? new Date(joiningDate).toISOString() : null,
         avatarColor,
+        access,
       };
       if (!isEdit) {
         payload.email = email.trim();
@@ -349,6 +394,7 @@ function UserEditor({
       const merged: AdminUser = {
         ...j.user,
         _count: user?._count ?? { assignedDeals: 0, assignedTasks: 0 },
+        access: j.user.access ?? access,
       };
       onSaved(merged);
       toast.success(isEdit ? "User saved" : "User created");
@@ -476,6 +522,58 @@ function UserEditor({
               value={joiningDate}
               onChange={(e) => setJoiningDate(e.target.value)}
             />
+          </div>
+
+          <div className="col-span-2 space-y-1.5">
+            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              Page access
+            </Label>
+            {role === "ADMIN" ? (
+              <div className="rounded-lg border border-dashed border-border bg-canvas/40 px-3 py-2.5 text-[11px] text-muted-foreground">
+                Admins always have full access to every page.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    { key: "pipeline", label: "Pipeline" },
+                    { key: "tasks", label: "Tasks" },
+                    { key: "contacts", label: "Contacts" },
+                    { key: "analytics", label: "Analytics" },
+                  ] as const
+                ).map((p) => {
+                  const enabled = access[p.key];
+                  return (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setAccess({ ...access, [p.key]: !enabled })}
+                      className={cn(
+                        "flex items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm transition-all",
+                        enabled
+                          ? "border-[hsl(var(--brand)/0.5)] bg-[hsl(var(--brand)/0.08)] text-foreground"
+                          : "border-border bg-canvas/40 text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <span className="font-medium">{p.label}</span>
+                      <span
+                        className={cn(
+                          "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors",
+                          enabled ? "bg-[hsl(var(--brand))]" : "bg-border"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform",
+                            enabled ? "translate-x-3.5" : "translate-x-0.5"
+                          )}
+                        />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="col-span-2 space-y-1.5">

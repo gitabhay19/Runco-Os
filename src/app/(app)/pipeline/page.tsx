@@ -1,14 +1,19 @@
+import { redirect } from "next/navigation";
 import { Topbar } from "@/components/app-shell/topbar";
 import { PipelineBoard } from "@/components/pipeline/pipeline-board";
 import { prisma } from "@/lib/prisma";
 import { dealInclude, visibilityWhere } from "@/lib/deals";
 import { requireUser } from "@/lib/session";
+import { canViewResource, getResourceAccess, firstAllowedRoute } from "@/lib/permissions";
 import type { DealDTO, StageDTO, UserLite } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function PipelinePage() {
   const user = await requireUser();
+  if (!(await canViewResource(user.id, user.role, "pipeline"))) {
+    redirect(firstAllowedRoute(await getResourceAccess(user.id, user.role)));
+  }
 
   const [stages, dealsRaw, usersRaw] = await Promise.all([
     prisma.stage.findMany({ orderBy: { order: "asc" } }),

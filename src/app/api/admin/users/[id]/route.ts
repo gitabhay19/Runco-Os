@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/session";
 import { logActivity } from "@/lib/activity";
 import { passwordResetEmail, sendEmail } from "@/lib/email";
 import { notify } from "@/lib/notifications";
+import { setResourceAccess } from "@/lib/permissions";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(80).optional(),
@@ -20,6 +21,15 @@ const updateSchema = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
   password: z.string().min(8).max(120).optional(),
+  access: z
+    .object({
+      pipeline: z.boolean(),
+      tasks: z.boolean(),
+      contacts: z.boolean(),
+      analytics: z.boolean(),
+    })
+    .partial()
+    .optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -92,6 +102,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     action: data.password ? "user_password_reset" : "user_updated",
     metadata: { keys: Object.keys(data) },
   });
+
+  // Apply per-resource permissions if provided (and the user is not an admin).
+  if (data.access && user.role === "USER") {
+    await setResourceAccess(user.id, data.access);
+  }
+  // If a user was promoted to admin, clean up their permission rows
+  // so the admin gets blanket access without stale denials lingering.
+  if (data.role === "ADMIN" && target.role !== "ADMIN") {
+    await prisma.permission.deleteMany({ where: { userId: user.id } });
+  }
 
   if (data.password) {
     const loginUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";

@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/activity";
 import { broadcast } from "@/lib/realtime";
 import { dealRowToDTO } from "@/lib/dto";
 import { notify } from "@/lib/notifications";
+import { canViewResource } from "@/lib/permissions";
 
 export async function GET() {
   let user;
@@ -15,6 +16,9 @@ export async function GET() {
   } catch (e) {
     if (e instanceof Response) return e;
     throw e;
+  }
+  if (!(await canViewResource(user.id, user.role, "pipeline"))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const deals = await prisma.deal.findMany({

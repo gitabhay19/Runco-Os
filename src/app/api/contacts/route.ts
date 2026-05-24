@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { dealInclude, visibilityWhere } from "@/lib/deals";
 import { dealRowToDTO } from "@/lib/dto";
+import { canViewResource } from "@/lib/permissions";
 
 /**
  * Returns a deduplicated list of contacts derived from the deals visible to the user.
@@ -15,6 +16,9 @@ export async function GET() {
   } catch (e) {
     if (e instanceof Response) return e;
     throw e;
+  }
+  if (!(await canViewResource(user.id, user.role, "contacts"))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const dealsRaw = await prisma.deal.findMany({

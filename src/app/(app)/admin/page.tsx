@@ -25,15 +25,29 @@ export default async function AdminPage() {
       avatarColor: true,
       createdAt: true,
       _count: { select: { assignedDeals: true, assignedTasks: true } },
+      permissions: {
+        where: { resource: { in: ["pipeline", "tasks", "contacts", "analytics"] } },
+        select: { resource: true, canView: true },
+      },
     },
   });
 
-  const initialUsers = usersRaw.map((u) => ({
-    ...u,
-    role: u.role as "ADMIN" | "USER",
-    joiningDate: u.joiningDate?.toISOString() ?? null,
-    createdAt: u.createdAt.toISOString(),
-  }));
+  const initialUsers = usersRaw.map((u) => {
+    const access = { pipeline: true, tasks: true, contacts: true, analytics: true };
+    for (const p of u.permissions) {
+      if (p.resource in access) {
+        access[p.resource as keyof typeof access] = p.canView;
+      }
+    }
+    const { permissions: _omit, ...rest } = u;
+    return {
+      ...rest,
+      role: u.role as "ADMIN" | "USER",
+      joiningDate: u.joiningDate?.toISOString() ?? null,
+      createdAt: u.createdAt.toISOString(),
+      access,
+    };
+  });
 
   return (
     <>

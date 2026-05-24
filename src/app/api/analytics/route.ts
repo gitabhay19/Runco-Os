@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { visibilityWhere } from "@/lib/deals";
+import { canViewResource } from "@/lib/permissions";
 
 export async function GET() {
   let user;
@@ -10,6 +11,9 @@ export async function GET() {
   } catch (e) {
     if (e instanceof Response) return e;
     throw e;
+  }
+  if (!(await canViewResource(user.id, user.role, "analytics"))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const dealVisibility = visibilityWhere(user);

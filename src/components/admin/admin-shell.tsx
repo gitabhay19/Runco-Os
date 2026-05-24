@@ -20,6 +20,7 @@ interface AdminUser {
   avatarColor: string;
   createdAt: string;
   _count: { assignedDeals: number; assignedTasks: number };
+  access: { pipeline: boolean; tasks: boolean; contacts: boolean; analytics: boolean };
 }
 
 interface Props {

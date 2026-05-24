@@ -15,22 +15,31 @@ import { Logo } from "@/components/brand/logo";
 import { cn, getInitials } from "@/lib/utils";
 import type { Role } from "@/lib/enums";
 
-interface SidebarProps {
-  user: { name: string; email: string; role: Role; avatarColor?: string | null };
+interface ResourceAccess {
+  pipeline: boolean;
+  tasks: boolean;
+  contacts: boolean;
+  analytics: boolean;
 }
 
-const NAV = [
-  { href: "/pipeline", label: "Pipeline", icon: LayoutGrid },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/contacts", label: "Contacts", icon: Users },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+interface SidebarProps {
+  user: { name: string; email: string; role: Role; avatarColor?: string | null };
+  access: ResourceAccess;
+}
+
+const NAV: { href: string; label: string; icon: typeof LayoutGrid; key: keyof ResourceAccess }[] = [
+  { href: "/pipeline", label: "Pipeline", icon: LayoutGrid, key: "pipeline" },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare, key: "tasks" },
+  { href: "/contacts", label: "Contacts", icon: Users, key: "contacts" },
+  { href: "/analytics", label: "Analytics", icon: BarChart3, key: "analytics" },
 ];
 
 const ADMIN_NAV = [{ href: "/admin", label: "Admin", icon: ShieldCheck }];
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, access }: SidebarProps) {
   const pathname = usePathname();
   const isAdmin = user.role === "ADMIN";
+  const visibleNav = NAV.filter((item) => isAdmin || access[item.key]);
 
   return (
     <aside className="hidden w-[260px] shrink-0 flex-col border-r border-border bg-surface md:flex">
@@ -45,7 +54,7 @@ export function Sidebar({ user }: SidebarProps) {
 
       <nav className="flex-1 space-y-0.5 p-3">
         <SidebarSection label="Workspace" />
-        {NAV.map((item) => (
+        {visibleNav.map((item) => (
           <NavItem
             key={item.href}
             href={item.href}

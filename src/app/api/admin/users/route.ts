@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/session";
 import { logActivity } from "@/lib/activity";
 import { sendEmail, welcomeEmail } from "@/lib/email";
 import { notify } from "@/lib/notifications";
+import { setResourceAccess, RESOURCES, type ResourceAccess } from "@/lib/permissions";
 
 export async function GET() {
   let admin;
@@ -33,18 +34,46 @@ export async function GET() {
       _count: {
         select: { assignedDeals: true, assignedTasks: true },
       },
+      permissions: {
+        where: { resource: { in: RESOURCES as readonly string[] as string[] } },
+        select: { resource: true, canView: true },
+      },
     },
   });
 
   return NextResponse.json({
-    users: users.map((u) => ({
-      ...u,
-      joiningDate: u.joiningDate?.toISOString() ?? null,
-      createdAt: u.createdAt.toISOString(),
-    })),
+    users: users.map((u) => {
+      const access = {
+        pipeline: true,
+        tasks: true,
+        contacts: true,
+        analytics: true,
+      } as ResourceAccess;
+      for (const p of u.permissions) {
+        if ((RESOURCES as readonly string[]).includes(p.resource)) {
+          access[p.resource as keyof ResourceAccess] = p.canView;
+        }
+      }
+      const { permissions: _omit, ...rest } = u;
+      return {
+        ...rest,
+        joiningDate: u.joiningDate?.toISOString() ?? null,
+        createdAt: u.createdAt.toISOString(),
+        access,
+      };
+    }),
     currentUserId: admin.id,
   });
 }
+
+const accessSchema = z
+  .object({
+    pipeline: z.boolean(),
+    tasks: z.boolean(),
+    contacts: z.boolean(),
+    analytics: z.boolean(),
+  })
+  .partial();
 
 const createSchema = z.object({
   email: z.string().email(),
@@ -60,6 +89,7 @@ const createSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .default("#0ea5e9"),
+  access: accessSchema.optional(),
 });
 
 export async function POST(req: Request) {
@@ -120,6 +150,11 @@ export async function POST(req: Request) {
     action: "user_created",
     metadata: { email: user.email, role: user.role },
   });
+
+  // Apply per-resource permissions for non-admin users.
+  if (data.role === "USER" && data.access) {
+    await setResourceAccess(user.id, data.access);
+  }
 
   // Welcome email + in-app notification (don't block the response on email failure).
   const loginUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000/login";
