@@ -1,0 +1,224 @@
+// Runco CRM — Prisma schema
+// Dev: SQLite (zero-setup). For production, switch provider to "postgresql"
+// and convert the string fields below back to native enums (commented in app code).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// String-typed values used in the app (kept in src/lib/enums.ts):
+//   Role           : "ADMIN" | "USER"
+//   TaskPriority   : "LOW" | "MEDIUM" | "HIGH" | "URGENT"
+//   TaskStatus     : "TODO" | "IN_PROGRESS" | "BLOCKED" | "DONE"
+//   ActivityStatus : "ACTIVE" | "IDLE" | "STALE"
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  passwordHash   String
+  name           String
+  role           String    @default("USER")
+  designation    String?
+  department     String?
+  employeeId     String?   @unique
+  employmentType String?
+  joiningDate    DateTime?
+  avatarColor    String    @default("#0ea5e9")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  assignedDeals    DealAssignee[]
+  createdDeals     Deal[]          @relation("DealCreator")
+  assignedTasks    Task[]          @relation("TaskAssignee")
+  createdTasks     Task[]          @relation("TaskCreator")
+  movedStages      StageHistory[]  @relation("StageMover")
+  activities       ActivityLog[]
+  permissions      Permission[]
+  sessions         Session[]
+  notifications    Notification[]  @relation("NotifRecipient")
+  triggeredNotifs  Notification[]  @relation("NotifActor")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Stage {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  order       Int
+  color       String   @default("#64748b")
+  isTerminal  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deals          Deal[]
+  historyFrom    StageHistory[] @relation("FromStage")
+  historyTo      StageHistory[] @relation("ToStage")
+  stageNotes     StageNote[]
+}
+
+model Deal {
+  id             String         @id @default(cuid())
+  companyName    String
+  contactName    String
+  designation    String?
+  description    String?
+  followUpDate   DateTime?
+  value          Float?
+  currency       String         @default("USD")
+  activityStatus String         @default("ACTIVE")
+  position       Int            @default(0)
+  stageId        String
+  createdById    String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  stage        Stage          @relation(fields: [stageId], references: [id])
+  createdBy    User           @relation("DealCreator", fields: [createdById], references: [id])
+  assignees    DealAssignee[]
+  phones       Phone[]
+  emails       Email[]
+  history      StageHistory[]
+  stageNotes   StageNote[]
+
+  @@index([stageId, position])
+  @@index([followUpDate])
+}
+
+model DealAssignee {
+  dealId String
+  userId String
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([dealId, userId])
+}
+
+model Phone {
+  id     String  @id @default(cuid())
+  dealId String
+  number String
+  label  String?
+  deal   Deal    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+}
+
+model Email {
+  id      String  @id @default(cuid())
+  dealId  String
+  address String
+  label   String?
+  deal    Deal    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+}
+
+model StageHistory {
+  id          String   @id @default(cuid())
+  dealId      String
+  fromStageId String?
+  toStageId   String
+  movedById   String
+  note        String?
+  createdAt   DateTime @default(now())
+
+  deal      Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  fromStage Stage? @relation("FromStage", fields: [fromStageId], references: [id])
+  toStage   Stage  @relation("ToStage", fields: [toStageId], references: [id])
+  movedBy   User   @relation("StageMover", fields: [movedById], references: [id])
+
+  @@index([dealId])
+}
+
+// One note per (deal, stage) — created automatically when a deal first enters a stage,
+// stays around forever even if the deal moves on, so the user can keep stage-specific context.
+model StageNote {
+  id        String   @id @default(cuid())
+  dealId    String
+  stageId   String
+  text      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deal  Deal  @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@unique([dealId, stageId])
+  @@index([dealId])
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  priority    String       @default("MEDIUM")
+  status      String       @default("TODO")
+  assigneeId  String
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  assignee  User @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy User @relation("TaskCreator", fields: [createdById], references: [id])
+
+  @@index([assigneeId, status])
+}
+
+model Permission {
+  id        String   @id @default(cuid())
+  userId    String
+  resource  String
+  canView   Boolean  @default(true)
+  canEdit   Boolean  @default(false)
+  canDelete Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resource])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  entityType String
+  entityId   String
+  action     String
+  metadata   String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  body        String?
+  // Where to navigate when clicked
+  link        String?
+  // Lightweight kind for icon/colour mapping
+  kind        String    @default("info")
+  entityType  String?
+  entityId    String?
+  // Who triggered the notification (optional)
+  actorId     String?
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  user  User @relation("NotifRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("NotifActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
