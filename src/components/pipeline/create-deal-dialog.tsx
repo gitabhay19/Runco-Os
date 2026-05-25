@@ -47,6 +47,7 @@ export function CreateDealDialog({
   const [companyName, setCompanyName] = useState("");
   const [contactName, setContactName] = useState("");
   const [designation, setDesignation] = useState("");
+  const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
   const [followUpDate, setFollowUpDate] = useState("");
   const [stageId, setStageId] = useState(defaultStageId);
@@ -60,6 +61,7 @@ export function CreateDealDialog({
       setCompanyName("");
       setContactName("");
       setDesignation("");
+      setWebsite("");
       setDescription("");
       setFollowUpDate("");
       setStageId(defaultStageId);
@@ -82,6 +84,7 @@ export function CreateDealDialog({
           companyName: companyName.trim(),
           contactName: contactName.trim(),
           designation: designation.trim() || undefined,
+          website: website.trim() || undefined,
           description: description.trim() || undefined,
           followUpDate: followUpDate ? new Date(followUpDate).toISOString() : null,
           stageId,
@@ -141,6 +144,16 @@ export function CreateDealDialog({
           </div>
           <div className="space-y-1.5">
             <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              Website
+            </Label>
+            <Input
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://example.com"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
               Stage
             </Label>
             <Select value={stageId} onValueChange={setStageId}>
@@ -170,13 +183,13 @@ export function CreateDealDialog({
 
         <div className="space-y-1.5">
           <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-            Description
+            Stage description
           </Label>
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            placeholder="What's this deal about?"
+            placeholder="What's the status while in this stage? (saved as the stage description)"
           />
         </div>
 

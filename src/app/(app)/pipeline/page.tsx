@@ -51,6 +51,7 @@ export default async function PipelinePage() {
     contactName: d.contactName,
     designation: d.designation,
     description: d.description,
+    website: d.website ?? null,
     followUpDate: d.followUpDate?.toISOString() ?? null,
     value: d.value,
     currency: d.currency,

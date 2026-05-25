@@ -39,6 +39,8 @@ export async function GET() {
       emails: string[];
       phones: string[];
       lastUpdatedAt: string;
+      createdAt: string;
+      followUpDate: string | null;
       latestStage: { id: string; name: string; color: string };
       dealIds: string[];
     }
@@ -56,6 +58,8 @@ export async function GET() {
         emails: d.emails.map((e) => e.address),
         phones: d.phones.map((p) => p.number),
         lastUpdatedAt: d.updatedAt,
+        createdAt: d.createdAt,
+        followUpDate: d.followUpDate,
         latestStage: { id: d.stage.id, name: d.stage.name, color: d.stage.color },
         dealIds: [d.id],
       });
@@ -66,6 +70,19 @@ export async function GET() {
       }
       for (const p of d.phones) {
         if (!existing.phones.includes(p.number)) existing.phones.push(p.number);
+      }
+      // Earliest contact creation
+      if (new Date(d.createdAt).getTime() < new Date(existing.createdAt).getTime()) {
+        existing.createdAt = d.createdAt;
+      }
+      // Closest upcoming follow-up
+      if (d.followUpDate) {
+        if (
+          !existing.followUpDate ||
+          new Date(d.followUpDate).getTime() < new Date(existing.followUpDate).getTime()
+        ) {
+          existing.followUpDate = d.followUpDate;
+        }
       }
       // Take the freshest deal for designation + latest stage if newer
       if (new Date(d.updatedAt).getTime() > new Date(existing.lastUpdatedAt).getTime()) {

@@ -13,6 +13,7 @@ const updateSchema = z.object({
   contactName: z.string().min(1).max(120).optional(),
   designation: z.string().max(120).nullable().optional(),
   description: z.string().max(2000).nullable().optional(),
+  website: z.string().max(200).nullable().optional(),
   followUpDate: z.string().datetime().nullable().optional(),
   value: z.number().nonnegative().nullable().optional(),
   currency: z.string().length(3).optional(),
@@ -94,6 +95,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         ...(data.contactName !== undefined && { contactName: data.contactName }),
         ...(data.designation !== undefined && { designation: data.designation ?? null }),
         ...(data.description !== undefined && { description: data.description ?? null }),
+        ...(data.website !== undefined && {
+          website: data.website && data.website.trim() ? data.website.trim() : null,
+        }),
         ...(data.followUpDate !== undefined && {
           followUpDate: data.followUpDate ? new Date(data.followUpDate) : null,
         }),

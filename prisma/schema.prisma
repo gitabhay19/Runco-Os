@@ -75,6 +75,7 @@ model Deal {
   contactName    String
   designation    String?
   description    String?
+  website        String?
   followUpDate   DateTime?
   value          Float?
   currency       String         @default("USD")

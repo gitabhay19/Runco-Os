@@ -46,6 +46,7 @@ export interface DealDTO {
   contactName: string;
   designation: string | null;
   description: string | null;
+  website: string | null;
   followUpDate: string | null;
   value: number | null;
   currency: string;

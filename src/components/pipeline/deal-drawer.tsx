@@ -77,6 +77,7 @@ export function DealDrawer({
   const [companyName, setCompanyName] = useState("");
   const [contactName, setContactName] = useState("");
   const [designation, setDesignation] = useState("");
+  const [website, setWebsite] = useState("");
   const [followUpDate, setFollowUpDate] = useState<string>("");
   const [phones, setPhones] = useState<DraftPhone[]>([]);
   const [emails, setEmails] = useState<DraftEmail[]>([]);
@@ -99,6 +100,7 @@ export function DealDrawer({
     setCompanyName(deal.companyName);
     setContactName(deal.contactName);
     setDesignation(deal.designation ?? "");
+    setWebsite(deal.website ?? "");
     setFollowUpDate(deal.followUpDate ? deal.followUpDate.slice(0, 10) : "");
     setPhones(deal.phones.map((p) => ({ id: p.id, number: p.number })));
     setEmails(deal.emails.map((e) => ({ id: e.id, address: e.address })));
@@ -128,6 +130,7 @@ export function DealDrawer({
         companyName,
         contactName,
         designation: designation || null,
+        website: website.trim() || null,
         followUpDate: followUpDate ? new Date(followUpDate).toISOString() : null,
         phones: phones.filter((p) => p.number.trim()).map((p) => ({ number: p.number.trim() })),
         emails: emails.filter((e) => e.address.trim()).map((e) => ({ address: e.address.trim() })),
@@ -241,6 +244,14 @@ export function DealDrawer({
               <Input
                 value={designation}
                 onChange={(e) => setDesignation(e.target.value)}
+                disabled={!canEdit}
+              />
+            </Field>
+            <Field label="Website">
+              <Input
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://example.com"
                 disabled={!canEdit}
               />
             </Field>

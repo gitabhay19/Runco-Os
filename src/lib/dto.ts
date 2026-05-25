@@ -12,6 +12,7 @@ export function dealRowToDTO(d: AnyRow): DealDTO {
     contactName: d.contactName,
     designation: d.designation,
     description: d.description,
+    website: d.website ?? null,
     followUpDate: d.followUpDate?.toISOString() ?? null,
     value: d.value ?? null,
     currency: d.currency,

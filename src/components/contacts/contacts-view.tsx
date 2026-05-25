@@ -10,6 +10,8 @@ import {
   Users,
   ExternalLink,
   Filter,
+  ArrowUpDown,
+  Globe,
 } from "lucide-react";
 import {
   Dialog,
@@ -37,9 +39,13 @@ interface Contact {
   emails: string[];
   phones: string[];
   lastUpdatedAt: string;
+  createdAt: string;
+  followUpDate: string | null;
   latestStage: { id: string; name: string; color: string };
   dealIds: string[];
 }
+
+type SortMode = "company" | "followUp" | "created" | "updated";
 
 export function ContactsView() {
   const [loading, setLoading] = useState(true);
@@ -47,6 +53,7 @@ export function ContactsView() {
   const [deals, setDeals] = useState<DealDTO[]>([]);
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
+  const [sort, setSort] = useState<SortMode>("company");
   const [selected, setSelected] = useState<Contact | null>(null);
 
   useEffect(() => {
@@ -79,7 +86,7 @@ export function ContactsView() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return contacts.filter((c) => {
+    const list = contacts.filter((c) => {
       if (stageFilter !== "all" && c.latestStage.id !== stageFilter) return false;
       if (!q) return true;
       const hay = [
@@ -93,7 +100,26 @@ export function ContactsView() {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [contacts, search, stageFilter]);
+
+    const sorted = [...list];
+    sorted.sort((a, b) => {
+      switch (sort) {
+        case "followUp": {
+          const av = a.followUpDate ? new Date(a.followUpDate).getTime() : Infinity;
+          const bv = b.followUpDate ? new Date(b.followUpDate).getTime() : Infinity;
+          return av - bv;
+        }
+        case "created":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "updated":
+          return new Date(b.lastUpdatedAt).getTime() - new Date(a.lastUpdatedAt).getTime();
+        case "company":
+        default:
+          return a.companyName.localeCompare(b.companyName);
+      }
+    });
+    return sorted;
+  }, [contacts, search, stageFilter, sort]);
 
   const dealsForSelected = useMemo(() => {
     if (!selected) return [];
@@ -156,6 +182,19 @@ export function ContactsView() {
                 Clear
               </button>
             )}
+
+            <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
+              <SelectTrigger className="h-10 w-[180px] text-xs">
+                <ArrowUpDown className="mr-1 h-3.5 w-3.5 opacity-60" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="company">Company name (A → Z)</SelectItem>
+                <SelectItem value="followUp">Next follow-up date</SelectItem>
+                <SelectItem value="created">Newest first</SelectItem>
+                <SelectItem value="updated">Latest activity</SelectItem>
+              </SelectContent>
+            </Select>
 
             <div className="ml-auto rounded-lg border border-border bg-surface/60 px-3 py-2 text-xs text-muted-foreground">
               <span className="text-foreground">{filtered.length}</span>
@@ -230,6 +269,14 @@ export function ContactsView() {
                             <Building2 className="h-3 w-3" />
                             {c.dealIds.length} deal{c.dealIds.length === 1 ? "" : "s"}
                           </span>
+                          {c.followUpDate && (
+                            <span className="inline-flex items-center gap-1">
+                              <span className="text-muted-foreground/60">Follow-up</span>
+                              <span className="text-foreground">
+                                {formatShortDate(c.followUpDate)}
+                              </span>
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -278,6 +325,9 @@ function ContactDetailDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   if (!contact) return null;
+
+  // Pull the most recent website URL from any of the contact's deals.
+  const website = deals.find((d) => d.website && d.website.trim())?.website ?? null;
 
   return (
     <Dialog open={!!contact} onOpenChange={onOpenChange}>
@@ -351,6 +401,20 @@ function ContactDetailDialog({
               )}
             </Section>
           </div>
+
+          {website && (
+            <Section title="Website" icon={Globe}>
+              <a
+                href={website.startsWith("http") ? website : `https://${website}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex items-center gap-1.5 text-[13px] text-foreground hover:underline"
+              >
+                {website}
+                <ExternalLink className="h-3 w-3 text-muted-foreground" />
+              </a>
+            </Section>
+          )}
 
           {/* Related deals */}
           <Section title={`Related deals (${deals.length})`} icon={Building2}>

@@ -34,7 +34,8 @@ const createSchema = z.object({
   companyName: z.string().min(1).max(120),
   contactName: z.string().min(1).max(120),
   designation: z.string().max(120).optional(),
-  description: z.string().max(2000).optional(),
+  description: z.string().max(4000).optional(),
+  website: z.string().max(200).optional(),
   followUpDate: z.string().datetime().nullable().optional(),
   value: z.number().nonnegative().nullable().optional(),
   currency: z.string().length(3).optional(),
@@ -80,6 +81,7 @@ export async function POST(req: Request) {
       contactName: data.contactName,
       designation: data.designation,
       description: data.description,
+      website: data.website?.trim() ? data.website.trim() : null,
       followUpDate: data.followUpDate ? new Date(data.followUpDate) : null,
       value: data.value ?? null,
       currency: data.currency ?? "USD",
@@ -89,7 +91,11 @@ export async function POST(req: Request) {
       phones: { create: data.phones },
       emails: { create: data.emails },
       assignees: { create: assigneeIds.map((userId) => ({ userId })) },
-      stageNotes: { create: { stageId: stage.id } },
+      // Seed the initial stage description with whatever the user typed
+      // in the create form so it shows up on the card immediately.
+      stageNotes: {
+        create: { stageId: stage.id, text: data.description ?? "" },
+      },
     },
     include: dealInclude,
   });

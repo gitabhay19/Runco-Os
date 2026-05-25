@@ -165,19 +165,19 @@ export function DealCard({
         </div>
 
         <div className="mt-2.5 flex items-center justify-between">
-          <div className="flex -space-x-1.5">
+          <div className="flex gap-1">
             {deal.assignees.slice(0, 4).map(({ user }) => (
               <span
                 key={user.id}
                 title={user.name}
-                className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-card text-[9px] font-semibold text-white"
+                className="flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold text-white ring-2 ring-card"
                 style={{ backgroundColor: user.avatarColor ?? "#0ea5e9" }}
               >
                 {getInitials(user.name)}
               </span>
             ))}
             {deal.assignees.length > 4 && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-secondary text-[9px] font-semibold text-secondary-foreground">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-[9px] font-semibold text-secondary-foreground ring-2 ring-card">
                 +{deal.assignees.length - 4}
               </span>
             )}
