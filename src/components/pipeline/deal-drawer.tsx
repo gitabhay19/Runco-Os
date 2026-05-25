@@ -22,6 +22,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,6 +83,7 @@ export function DealDrawer({
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [history, setHistory] = useState<StageHistoryDTO[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const focusedRef = useRef<HTMLTextAreaElement | null>(null);
 
   const canEdit =
@@ -150,7 +152,6 @@ export function DealDrawer({
 
   async function remove() {
     if (!deal) return;
-    if (!confirm(`Delete "${deal.companyName}"? This cannot be undone.`)) return;
     const res = await fetch(`/api/deals/${deal.id}`, { method: "DELETE" });
     if (!res.ok) {
       toast.error("Failed to delete");
@@ -181,6 +182,7 @@ export function DealDrawer({
   const sortedNotes = [...deal.stageNotes].sort((a, b) => a.stage.order - b.stage.order);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[760px] gap-0 overflow-hidden rounded-3xl border-border bg-surface p-0 shadow-2xl">
         <DialogHeader className="border-b border-border px-7 py-5">
@@ -445,7 +447,7 @@ export function DealDrawer({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={remove}
+                onClick={() => setConfirmDelete(true)}
                 className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -467,6 +469,18 @@ export function DealDrawer({
         </div>
       </DialogContent>
     </Dialog>
+
+    {deal && (
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={`Delete "${deal.companyName}"?`}
+        description="This will permanently remove the deal, all its notes, and stage history. This cannot be undone."
+        confirmLabel="Delete deal"
+        onConfirm={remove}
+      />
+    )}
+  </>
   );
 }
 
@@ -495,6 +509,7 @@ function StageNoteEditor({
   const [text, setText] = useState(note.text);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const lastSavedRef = useRef(note.text);
+  const [confirmDeleteNote, setConfirmDeleteNote] = useState(false);
 
   useEffect(() => {
     if (note.text !== lastSavedRef.current) {
@@ -528,9 +543,6 @@ function StageNoteEditor({
 
   async function clearText() {
     if (!canDelete) return;
-    if (!confirm(`Delete the ${note.stage.name} stage description? This removes the entire box.`)) {
-      return;
-    }
     try {
       const res = await fetch(`/api/deals/${dealId}/notes/${note.stageId}`, {
         method: "DELETE",
@@ -568,7 +580,7 @@ function StageNoteEditor({
           {canDelete && (
             <button
               type="button"
-              onClick={clearText}
+              onClick={() => setConfirmDeleteNote(true)}
               className="rounded p-1 text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive"
               aria-label="Delete description"
               title="Delete this description"
@@ -594,6 +606,14 @@ function StageNoteEditor({
         disabled={disabled}
         autoFocus={autoFocus}
         className="scrollbar-thin w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand)/0.25)]"
+      />
+      <ConfirmDialog
+        open={confirmDeleteNote}
+        onOpenChange={setConfirmDeleteNote}
+        title={`Delete "${note.stage.name} stage" description?`}
+        description="This removes the entire description box for this stage. This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={clearText}
       />
     </div>
   );

@@ -21,6 +21,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn, formatShortDate, getInitials } from "@/lib/utils";
 
 interface AdminUser {
@@ -63,6 +64,7 @@ export function UsersTab({ initialUsers, currentUserId }: Props) {
   const [search, setSearch] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorUser, setEditorUser] = useState<AdminUser | null>(null);
+  const [confirmUser, setConfirmUser] = useState<AdminUser | null>(null);
 
   const filtered = users.filter((u) => {
     const q = search.trim().toLowerCase();
@@ -88,7 +90,6 @@ export function UsersTab({ initialUsers, currentUserId }: Props) {
       toast.error("You cannot delete your own account.");
       return;
     }
-    if (!confirm(`Delete ${user.name} (${user.email})? This cannot be undone.`)) return;
     const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
@@ -253,7 +254,13 @@ export function UsersTab({ initialUsers, currentUserId }: Props) {
                       size="sm"
                       variant="ghost"
                       className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => handleDelete(u)}
+                      onClick={() => {
+                        if (u.id === currentUserId) {
+                          toast.error("You cannot delete your own account.");
+                          return;
+                        }
+                        setConfirmUser(u);
+                      }}
                       disabled={u.id === currentUserId}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -278,6 +285,15 @@ export function UsersTab({ initialUsers, currentUserId }: Props) {
         onOpenChange={setEditorOpen}
         user={editorUser}
         onSaved={(u) => upsert(u)}
+      />
+
+      <ConfirmDialog
+        open={!!confirmUser}
+        onOpenChange={(open) => !open && setConfirmUser(null)}
+        title={`Delete ${confirmUser?.name}?`}
+        description={`This will permanently remove ${confirmUser?.email} and all their data. This cannot be undone.`}
+        confirmLabel="Delete user"
+        onConfirm={() => confirmUser && handleDelete(confirmUser)}
       />
     </div>
   );

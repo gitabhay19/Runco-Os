@@ -5,6 +5,7 @@ import { Plus, Search, Filter, AlertTriangle, LayoutGrid, List as ListIcon } fro
 import { toast } from "sonner";
 import { TaskBoard } from "./task-board";
 import { TaskDialog } from "./task-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -68,6 +69,7 @@ export function TasksView({ initialTasks, users, currentUser }: TasksViewProps) 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorTask, setEditorTask] = useState<TaskDTO | null>(null);
   const [editorStatus, setEditorStatus] = useState<TaskStatus>("TODO");
+  const [confirmTask, setConfirmTask] = useState<TaskDTO | null>(null);
 
   const isAdmin = currentUser.role === "ADMIN";
 
@@ -117,7 +119,6 @@ export function TasksView({ initialTasks, users, currentUser }: TasksViewProps) 
   }
 
   async function deleteTask(task: TaskDTO) {
-    if (!confirm(`Delete "${task.title}"?`)) return;
     const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
     if (!res.ok) {
       toast.error("Could not delete task");
@@ -251,7 +252,7 @@ export function TasksView({ initialTasks, users, currentUser }: TasksViewProps) 
               isAdmin={isAdmin}
               onSelect={openEditor}
               onStatusChange={changeStatus}
-              onDelete={deleteTask}
+              onDelete={(t) => setConfirmTask(t)}
               onAdd={(status) => openCreate(status)}
             />
           ) : (
@@ -260,7 +261,7 @@ export function TasksView({ initialTasks, users, currentUser }: TasksViewProps) 
               currentUser={currentUser}
               onSelect={openEditor}
               onStatusChange={changeStatus}
-              onDelete={deleteTask}
+              onDelete={(t) => setConfirmTask(t)}
             />
           )}
         </div>
@@ -275,6 +276,15 @@ export function TasksView({ initialTasks, users, currentUser }: TasksViewProps) 
         currentUser={currentUser}
         onSaved={(t) => upsertTaskLocal(t)}
         onDeleted={(id) => removeTaskLocal(id)}
+      />
+
+      <ConfirmDialog
+        open={!!confirmTask}
+        onOpenChange={(open) => !open && setConfirmTask(null)}
+        title={`Delete "${confirmTask?.title}"?`}
+        description="This task will be permanently removed. This cannot be undone."
+        confirmLabel="Delete task"
+        onConfirm={() => confirmTask && deleteTask(confirmTask)}
       />
     </>
   );

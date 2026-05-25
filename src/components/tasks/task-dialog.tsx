@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,6 +72,7 @@ export function TaskDialog({
   const [status, setStatus] = useState<TaskStatus>(defaultStatus);
   const [assigneeId, setAssigneeId] = useState<string>(currentUser.id);
   const [isPending, startTransition] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -130,7 +132,6 @@ export function TaskDialog({
 
   async function remove() {
     if (!task) return;
-    if (!confirm(`Delete "${task.title}"?`)) return;
     const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
     if (!res.ok) {
       toast.error("Failed to delete");
@@ -142,6 +143,7 @@ export function TaskDialog({
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[640px] gap-0 overflow-hidden rounded-3xl border-border bg-surface p-0 shadow-2xl">
         <DialogHeader className="border-b border-border px-7 py-5">
@@ -298,7 +300,7 @@ export function TaskDialog({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={remove}
+                onClick={() => setConfirmDelete(true)}
                 className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -318,5 +320,17 @@ export function TaskDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    {task && (
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={`Delete "${task.title}"?`}
+        description="This task will be permanently removed. This cannot be undone."
+        confirmLabel="Delete task"
+        onConfirm={remove}
+      />
+    )}
+  </>
   );
 }
