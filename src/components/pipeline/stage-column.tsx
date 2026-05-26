@@ -78,9 +78,23 @@ export function StageColumn({
           </span>
         </div>
 
-        <h3 className="mt-2 font-display text-[18px] font-bold leading-tight tracking-[-0.02em] text-foreground">
-          {stage.name} Stage
-        </h3>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <h3 className="font-display text-[18px] font-bold leading-tight tracking-[-0.02em] text-foreground">
+            {stage.name} Stage
+          </h3>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd(stage);
+            }}
+            className="inline-flex h-7 items-center gap-1 rounded-md border border-border bg-canvas/60 px-2 text-[11px] font-medium text-muted-foreground transition-all hover:border-[hsl(var(--brand)/0.5)] hover:bg-[hsl(var(--brand)/0.08)] hover:text-foreground"
+            aria-label={`Add to ${stage.name}`}
+          >
+            <Plus className="h-3 w-3" />
+            Add
+          </button>
+        </div>
       </button>
 
       {/* Description box */}
@@ -138,19 +152,6 @@ export function StageColumn({
             <p className="text-[11px] text-muted-foreground">This stage is empty</p>
           </div>
         )}
-      </div>
-
-      {/* Footer add button */}
-      <div className="border-t border-border bg-surface/80 px-2.5 py-2 backdrop-blur">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-full justify-center text-[12px] text-muted-foreground hover:text-foreground"
-          onClick={() => onAdd(stage)}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add
-        </Button>
       </div>
     </div>
   );
