@@ -46,7 +46,7 @@ export function DealCard({
   });
 
   const style = {
-    transform: CSS.Translate.toString(transform),
+    transform: CSS.Transform.toString(transform),
     transition,
   };
 
@@ -81,33 +81,31 @@ export function DealCard({
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
+      onClick={() => {
+        if (!isDragging) onClick?.();
+      }}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && !isDragging) {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      role="button"
+      tabIndex={0}
       className={cn(
         "group relative overflow-hidden rounded-xl border bg-card text-left transition-all",
         "shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
         "hover:-translate-y-px hover:border-[hsl(var(--brand)/0.55)] hover:shadow-md",
         isDragging && "opacity-40",
         isOverlay && "rotate-2 scale-[1.02] border-[hsl(var(--brand)/0.6)] shadow-2xl",
-        !isDragging && !isOverlay && "border-border"
+        !isDragging && !isOverlay && "border-border",
+        isOverlay ? "cursor-grabbing" : "cursor-grab active:cursor-grabbing"
       )}
     >
       <div
-        {...attributes}
-        {...listeners}
-        onClick={() => {
-          if (!isDragging) onClick?.();
-        }}
-        onKeyDown={(e) => {
-          if ((e.key === "Enter" || e.key === " ") && !isDragging) {
-            e.preventDefault();
-            onClick?.();
-          }
-        }}
-        role="button"
-        tabIndex={0}
-        className={cn(
-          "cursor-grab px-3.5 py-3 active:cursor-grabbing",
-          isOverlay && "cursor-grabbing"
-        )}
+        className="px-3.5 py-3"
       >
         <div className="flex items-start gap-2.5">
           <div
