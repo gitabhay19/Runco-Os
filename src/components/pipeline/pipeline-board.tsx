@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
   PointerSensor,
-  closestCorners,
+  pointerWithin,
+  rectIntersection,
+  closestCenter,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -75,6 +78,66 @@ export function PipelineBoard({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // Custom collision detection: prioritise stage containers for cross-column
+  // moves, then fall back to closestCenter for within-column card ordering.
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    // 1. Check if the pointer is within any stage droppable
+    const pointerCollisions = pointerWithin({
+      ...args,
+      droppableContainers: args.droppableContainers.filter((c) =>
+        String(c.id).startsWith("stage-")
+      ),
+    });
+
+    if (pointerCollisions.length > 0) {
+      // We know which stage the pointer is in. Now find the closest card
+      // within that stage so we can resolve the insertion index.
+      const stageId = String(pointerCollisions[0].id).replace("stage-", "");
+      const cardsInStage = args.droppableContainers.filter(
+        (c) => !String(c.id).startsWith("stage-") && c.data?.current?.sortable?.containerId === `stage-${stageId}`
+      );
+
+      if (cardsInStage.length > 0) {
+        const cardCollisions = closestCenter({
+          ...args,
+          droppableContainers: cardsInStage,
+        });
+        if (cardCollisions.length > 0) return cardCollisions;
+      }
+
+      // No cards in the stage (empty column) — return the stage itself
+      return pointerCollisions;
+    }
+
+    // 2. Fallback: use rectIntersection on stages, then closestCenter on cards
+    const rectCollisions = rectIntersection({
+      ...args,
+      droppableContainers: args.droppableContainers.filter((c) =>
+        String(c.id).startsWith("stage-")
+      ),
+    });
+
+    if (rectCollisions.length > 0) {
+      const stageId = String(rectCollisions[0].id).replace("stage-", "");
+      const cardsInStage = args.droppableContainers.filter(
+        (c) => !String(c.id).startsWith("stage-") && c.data?.current?.sortable?.containerId === `stage-${stageId}`
+      );
+
+      if (cardsInStage.length > 0) {
+        const cardCollisions = closestCenter({
+          ...args,
+          droppableContainers: cardsInStage,
+        });
+        if (cardCollisions.length > 0) return cardCollisions;
+      }
+
+      return rectCollisions;
+    }
+
+    // 3. Last resort
+    return closestCenter(args);
+  }, []);
 
   const filteredDeals = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -234,7 +297,7 @@ export function PipelineBoard({
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionDetection}
         onDragStart={onDragStart}
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}

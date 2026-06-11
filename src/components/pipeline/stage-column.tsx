@@ -128,7 +128,7 @@ export function StageColumn({
             : "bg-gradient-to-b from-canvas/30 to-canvas/10"
         )}
       >
-        <SortableContext items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext id={`stage-${stage.id}`} items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
           {deals.map((deal) => (
             <DealCard
               key={deal.id}
